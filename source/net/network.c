@@ -1,25 +1,13 @@
-/**
- * 3DS CloudSaver - Network Module Implementation
- * ───────────────────────────────────────────────
- * Provides SFTP/SMB connectivity via raw TCP sockets.
+/*
+ * network.c — CSTP client implementation.
  *
- * NOTE: The 3DS does not have a full POSIX socket stack by default.
- * This uses the SOC service from libctru. Full SFTP would require
- * porting libssh2 or a minimal SSH/SFTP implementation.
+ * Protocol (CloudSaver Transfer Protocol):
+ *   [4B command][4B payload_len][payload]
  *
- * For a first version, this implements a simple custom TCP protocol
- * that talks to a companion server application running on the user's
- * machine. The companion server exposes a minimal file-transfer API.
- *
- * Protocol (CloudSaver Transfer Protocol - CSTP):
- *   CMD  | Payload
- *   PING | (none) -> PONG
- *   LIST | path   -> file list (newline-separated)
- *   MKDR | path   -> OK/ERR
- *   UPLD | path + size + data -> OK/ERR
- *   DNLD | path   -> size + data / ERR
- *   DELE | path   -> OK/ERR
- *   EXST | path   -> YES/NO/ERR
+ *   PING → PONG        LIST path → file list
+ *   MKDR path → OK     UPLD path+size+data → OK
+ *   DNLD path → data   DELE path → OK
+ *   EXST path → YES/NO
  */
 
 #include "network.h"
@@ -34,9 +22,7 @@
 #include <fcntl.h>
 #include <poll.h>
 
-/*═══════════════════════════════════════════════════════════════*
- *  Constants
- *═══════════════════════════════════════════════════════════════*/
+/* Constants */
 #define SOC_ALIGN       0x1000
 #define SOC_BUFFERSIZE  0x80000   /* 512 KB (reduced for stability) */
 #define NET_TIMEOUT_MS  10000
@@ -57,18 +43,14 @@
 #define RSP_YES   "YES"
 #define RSP_NO    "NO"
 
-/*═══════════════════════════════════════════════════════════════*
- *  State
- *═══════════════════════════════════════════════════════════════*/
+/* State */
 static u32   *soc_buffer   = NULL;
 static int    sock_fd      = -1;
 static bool   connected    = false;
 static char   last_error[256] = {0};
 static char   server_base_path[MAX_PATH_LEN] = {0};
 
-/*═══════════════════════════════════════════════════════════════*
- *  Helpers
- *═══════════════════════════════════════════════════════════════*/
+/* Helpers */
 static void set_error(const char *fmt, ...)
 {
     va_list ap;
@@ -77,7 +59,6 @@ static void set_error(const char *fmt, ...)
     va_end(ap);
 }
 
-/** Send exactly `len` bytes. Returns true on success. */
 static bool send_all(const void *data, size_t len)
 {
     const u8 *p = (const u8 *)data;
@@ -93,7 +74,6 @@ static bool send_all(const void *data, size_t len)
     return true;
 }
 
-/** Receive exactly `len` bytes. Returns true on success. */
 static bool recv_all(void *data, size_t len)
 {
     u8 *p = (u8 *)data;
@@ -109,7 +89,7 @@ static bool recv_all(void *data, size_t len)
     return true;
 }
 
-/** Send a CSTP command: [4-byte cmd][4-byte payload_len][payload] */
+/* Send CSTP command: [4B cmd][4B len][payload] */
 static bool send_cmd(const char *cmd, const void *payload, u32 payload_len)
 {
     if (!send_all(cmd, 4)) return false;
@@ -121,9 +101,7 @@ static bool send_cmd(const char *cmd, const void *payload, u32 payload_len)
     return true;
 }
 
-/** Receive a CSTP response: [4-byte status][4-byte payload_len][payload]
- *  Caller must free *out_data if out_data is not NULL and *out_len > 0.
- */
+/* Receive CSTP response. Caller must free *out_data. */
 static bool recv_response(char *status_out, void **out_data, u32 *out_len)
 {
     char status[5] = {0};
@@ -162,7 +140,6 @@ static bool recv_response(char *status_out, void **out_data, u32 *out_len)
     return true;
 }
 
-/** Build a full remote path from base + relative. */
 static void build_full_path(char *out, size_t max, const char *relative)
 {
     if (relative[0] == '/')
@@ -171,9 +148,7 @@ static void build_full_path(char *out, size_t max, const char *relative)
         snprintf(out, max, "%s/%s", server_base_path, relative);
 }
 
-/*═══════════════════════════════════════════════════════════════*
- *  Public API
- *═══════════════════════════════════════════════════════════════*/
+/* ── Public API ── */
 
 bool net_init(void)
 {
@@ -429,49 +404,36 @@ int net_list_dir(const char *remote_path, char ***out_names)
     return idx;
 }
 
-bool net_mkdir(const char *remote_path)
+/* Send a simple path-based command and check for expected status prefix. */
+static bool simple_path_cmd(const char *cmd, const char *remote_path,
+                            const char *expect, int expect_len)
 {
     if (!net_is_connected()) return false;
 
     char full_path[MAX_PATH_LEN];
     build_full_path(full_path, sizeof(full_path), remote_path);
 
-    if (!send_cmd(CMD_MKDR, full_path, (u32)strlen(full_path)))
+    if (!send_cmd(cmd, full_path, (u32)strlen(full_path)))
         return false;
 
     char status[5] = {0};
     if (!recv_response(status, NULL, NULL)) return false;
-    return memcmp(status, RSP_OK, 2) == 0;
+    return memcmp(status, expect, expect_len) == 0;
+}
+
+bool net_mkdir(const char *remote_path)
+{
+    return simple_path_cmd(CMD_MKDR, remote_path, RSP_OK, 2);
 }
 
 bool net_exists(const char *remote_path)
 {
-    if (!net_is_connected()) return false;
-
-    char full_path[MAX_PATH_LEN];
-    build_full_path(full_path, sizeof(full_path), remote_path);
-
-    if (!send_cmd(CMD_EXST, full_path, (u32)strlen(full_path)))
-        return false;
-
-    char status[5] = {0};
-    if (!recv_response(status, NULL, NULL)) return false;
-    return memcmp(status, RSP_YES, 3) == 0;
+    return simple_path_cmd(CMD_EXST, remote_path, RSP_YES, 3);
 }
 
 bool net_delete(const char *remote_path)
 {
-    if (!net_is_connected()) return false;
-
-    char full_path[MAX_PATH_LEN];
-    build_full_path(full_path, sizeof(full_path), remote_path);
-
-    if (!send_cmd(CMD_DELE, full_path, (u32)strlen(full_path)))
-        return false;
-
-    char status[5] = {0};
-    if (!recv_response(status, NULL, NULL)) return false;
-    return memcmp(status, RSP_OK, 2) == 0;
+    return simple_path_cmd(CMD_DELE, remote_path, RSP_OK, 2);
 }
 
 const char *net_last_error(void)

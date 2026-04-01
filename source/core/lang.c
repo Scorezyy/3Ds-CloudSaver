@@ -1,6 +1,6 @@
 /**
  * 3DS CloudSaver - Multi-Language String Tables
- * ──────────────────────────────────────────────
+ *
  * All user-facing strings, organised by StringKey enum.
  */
 
@@ -8,11 +8,8 @@
 
 static Language current_lang = LANG_EN;
 
-/*═══════════════════════════════════════════════════════════════*
- *  String tables – one array per language
- *═══════════════════════════════════════════════════════════════*/
+/* String tables – one array per language */
 
-/* ──────────── English ──────────── */
 static const char *strings_en[STR_COUNT] = {
     /* General */
     [STR_APP_TITLE]     = "3DS CloudSaver",
@@ -110,7 +107,6 @@ static const char *strings_en[STR_COUNT] = {
     [STR_LANG_JA] = "日本語",
 };
 
-/* ──────────── Deutsch (German) ──────────── */
 static const char *strings_de[STR_COUNT] = {
     [STR_APP_TITLE]     = "3DS CloudSaver",
     [STR_OK]            = "OK",
@@ -198,7 +194,6 @@ static const char *strings_de[STR_COUNT] = {
     [STR_LANG_JA] = "日本語",
 };
 
-/* ──────────── Français (French) ──────────── */
 static const char *strings_fr[STR_COUNT] = {
     [STR_APP_TITLE]     = "3DS CloudSaver",
     [STR_OK]            = "OK",
@@ -286,7 +281,6 @@ static const char *strings_fr[STR_COUNT] = {
     [STR_LANG_JA] = "日本語",
 };
 
-/* ──────────── Español (Spanish) ──────────── */
 static const char *strings_es[STR_COUNT] = {
     [STR_APP_TITLE]     = "3DS CloudSaver",
     [STR_OK]            = "OK",
@@ -374,7 +368,6 @@ static const char *strings_es[STR_COUNT] = {
     [STR_LANG_JA] = "日本語",
 };
 
-/* ──────────── Italiano (Italian) ──────────── */
 static const char *strings_it[STR_COUNT] = {
     [STR_APP_TITLE]     = "3DS CloudSaver",
     [STR_OK]            = "OK",
@@ -462,7 +455,6 @@ static const char *strings_it[STR_COUNT] = {
     [STR_LANG_JA] = "日本語",
 };
 
-/* ──────────── 日本語 (Japanese) ──────────── */
 static const char *strings_ja[STR_COUNT] = {
     [STR_APP_TITLE]     = "3DS CloudSaver",
     [STR_OK]            = "OK",
@@ -550,9 +542,7 @@ static const char *strings_ja[STR_COUNT] = {
     [STR_LANG_JA] = "日本語",
 };
 
-/*═══════════════════════════════════════════════════════════════*
- *  Table of tables
- *═══════════════════════════════════════════════════════════════*/
+/* Table of tables */
 static const char **string_tables[LANG_COUNT] = {
     [LANG_EN] = strings_en,
     [LANG_DE] = strings_de,
@@ -562,9 +552,7 @@ static const char **string_tables[LANG_COUNT] = {
     [LANG_JA] = strings_ja,
 };
 
-/*═══════════════════════════════════════════════════════════════*
- *  API
- *═══════════════════════════════════════════════════════════════*/
+/* API */
 void lang_init(Language lang)
 {
     current_lang = (lang < LANG_COUNT) ? lang : LANG_EN;

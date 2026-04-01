@@ -30,9 +30,9 @@ APP_RSF         := $(TOPDIR)/meta/app.rsf
 
 TARGET          := CloudSaver
 BUILD           := build
-SOURCES         := source
+SOURCES         := source source/core source/ui source/net source/save
 DATA            := data
-INCLUDES        := include
+INCLUDES        := include include/core include/ui include/net include/save
 ROMFS           := romfs
 CIA_DIR         := cia
 

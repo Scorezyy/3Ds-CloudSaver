@@ -1,12 +1,13 @@
 /**
  * 3DS CloudSaver - Main Entry Point
- * ──────────────────────────────────
+ *
  * Initialises hardware services, runs the main application loop,
  * and cleanly shuts everything down on exit.
  */
 
 #include "common.h"
 #include "config.h"
+#include "input.h"
 #include "lang.h"
 #include "ui.h"
 #include "save.h"
@@ -14,13 +15,11 @@
 #include "sync.h"
 #include "loading.h"
 
-/*═══════════════════════════════════════════════════════════════*
- *  Global application context
- *═══════════════════════════════════════════════════════════════*/
+/* Global application context */
 AppContext g_ctx;
 static LoadingContext s_loading;
 
-/*───────────────── Forward declarations ────────────────────────*/
+/* Forward declarations */
 static void app_init(void);
 static void app_exit(void);
 static void app_main_loop(void);
@@ -30,9 +29,7 @@ static void update_state(void);
 static void render(void);
 static void attempt_auto_connect(void);
 
-/*═══════════════════════════════════════════════════════════════*
- *  Entry
- *═══════════════════════════════════════════════════════════════*/
+/* Entry */
 int main(int argc, char **argv)
 {
     (void)argc; (void)argv;
@@ -44,9 +41,7 @@ int main(int argc, char **argv)
     return 0;
 }
 
-/*═══════════════════════════════════════════════════════════════*
- *  Initialisation
- *═══════════════════════════════════════════════════════════════*/
+/* Initialisation */
 static void app_init(void)
 {
     /* Zero out context */
@@ -90,9 +85,7 @@ static void app_init(void)
     }
 }
 
-/*═══════════════════════════════════════════════════════════════*
- *  Main loop
- *═══════════════════════════════════════════════════════════════*/
+/* Main loop */
 static void app_main_loop(void)
 {
     while (aptMainLoop()) {
@@ -113,9 +106,7 @@ static void app_main_loop(void)
     }
 }
 
-/*═══════════════════════════════════════════════════════════════*
- *  Shutdown
- *═══════════════════════════════════════════════════════════════*/
+/* Shutdown */
 static void app_exit(void)
 {
     /* Save config on exit */
@@ -138,9 +129,7 @@ static void app_exit(void)
     gfxExit();  /* also calls aptExit internally */
 }
 
-/*═══════════════════════════════════════════════════════════════*
- *  Input handling
- *═══════════════════════════════════════════════════════════════*/
+/* Input handling */
 static void handle_input(void)
 {
     static int r_hold_frames = 0; /* R-button hold counter for delete */
@@ -162,7 +151,7 @@ static void handle_input(void)
         /* A button triggers keyboard */
         if (kDown & KEY_A) {
             char name[MAX_DEVICE_NAME] = {0};
-            if (config_prompt_device_name(name, sizeof(name))) {
+            if (input_prompt_device_name(name, sizeof(name))) {
                 strncpy(g_ctx.config.device_name, name, MAX_DEVICE_NAME - 1);
                 g_ctx.config.first_run = false;
                 config_save(&g_ctx.config);
@@ -241,7 +230,7 @@ static void handle_input(void)
         /* Y: upload current save for this game */
         if (kDown & KEY_Y && net_is_connected()) {
             char msg[MAX_COMMIT_MSG_LEN] = {0};
-            if (config_keyboard_input(
+            if (input_keyboard(
                     lang_str(STR_COMMIT_MSG_HINT), "",
                     msg, sizeof(msg)))
             {
@@ -378,7 +367,7 @@ static void handle_input(void)
         /* X: edit description */
         if (kDown & KEY_X && g_ctx.selected_save >= 0) {
             char desc[MAX_DESCRIPTION_LEN] = {0};
-            if (config_keyboard_input(
+            if (input_keyboard(
                     lang_str(STR_ADD_DESCRIPTION),
                     g_ctx.saves[g_ctx.selected_save].description,
                     desc, sizeof(desc)))
@@ -414,9 +403,7 @@ static void handle_input(void)
     }
 }
 
-/*═══════════════════════════════════════════════════════════════*
- *  Touch handling (bottom screen)
- *═══════════════════════════════════════════════════════════════*/
+/* Touch handling (bottom screen) */
 static void handle_touch(touchPosition touch)
 {
     /* Navigation bar area: bottom 40px of the bottom screen */
@@ -441,7 +428,7 @@ static void handle_touch(touchPosition touch)
                     }
                     /* Prompt for commit message */
                     char msg[MAX_COMMIT_MSG_LEN] = {0};
-                    if (config_keyboard_input(
+                    if (input_keyboard(
                             lang_str(STR_ENTER_COMMIT_MSG), "",
                             msg, sizeof(msg)))
                     {
@@ -475,9 +462,7 @@ static void handle_touch(touchPosition touch)
     }
 }
 
-/*═══════════════════════════════════════════════════════════════*
- *  State update
- *═══════════════════════════════════════════════════════════════*/
+/* State update */
 static void update_state(void)
 {
     /* Update animations */
@@ -509,9 +494,7 @@ static void update_state(void)
     }
 }
 
-/*═══════════════════════════════════════════════════════════════*
- *  Render
- *═══════════════════════════════════════════════════════════════*/
+/* Render */
 static void render(void)
 {
     ui_frame_begin();
@@ -574,9 +557,7 @@ static void render(void)
     ui_frame_end();
 }
 
-/*═══════════════════════════════════════════════════════════════*
- *  Auto-connect to server
- *═══════════════════════════════════════════════════════════════*/
+/* Auto-connect to server */
 static void attempt_auto_connect(void)
 {
     if (g_ctx.config.server.type == CONN_NONE) {

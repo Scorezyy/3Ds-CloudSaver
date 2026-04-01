@@ -1,6 +1,6 @@
 /**
  * 3DS CloudSaver - Loading Screen Implementation
- * ────────────────────────────────────────────────
+ *
  * Provides a non-blocking startup sequence:
  *  - Fetches the title list once (LOAD_PHASE_INIT)
  *  - Scans one title per frame (LOAD_PHASE_SCANNING)
@@ -19,9 +19,7 @@
 
 #include <math.h>
 
-/*═══════════════════════════════════════════════════════════════*
- *  Init
- *═══════════════════════════════════════════════════════════════*/
+/* Init */
 void loading_init(LoadingContext *lctx)
 {
     memset(lctx, 0, sizeof(LoadingContext));
@@ -32,12 +30,9 @@ void loading_init(LoadingContext *lctx)
     snprintf(lctx->cloud_msg, sizeof(lctx->cloud_msg), "Warte...");
 }
 
-/*═══════════════════════════════════════════════════════════════*
- *  Update — call once per frame
- *═══════════════════════════════════════════════════════════════*/
+/* Update — call once per frame */
 bool loading_update(LoadingContext *lctx)
 {
-    /* ── Animate spinner ───────────────────────────────────────── */
     lctx->spinner_angle += 4.0f;
     if (lctx->spinner_angle >= 360.0f)
         lctx->spinner_angle -= 360.0f;
@@ -80,7 +75,6 @@ bool loading_update(LoadingContext *lctx)
         }
     }
 
-    /* ── Title scanning state machine ──────────────────────────── */
     switch (lctx->phase) {
 
     case LOAD_PHASE_INIT: {
@@ -138,16 +132,12 @@ bool loading_update(LoadingContext *lctx)
     return false;
 }
 
-/*═══════════════════════════════════════════════════════════════*
- *  Draw – Top Screen (progress bar, game count, spinner)
- *═══════════════════════════════════════════════════════════════*/
+/* Draw – Top Screen (progress bar, game count, spinner) */
 void loading_draw_top(const LoadingContext *lctx)
 {
-    /* ── Title ──────────────────────────────────────────────────── */
     ui_draw_text_centered_top(40.0f, 0.85f, CLR_ACCENT,
                               lang_str(STR_APP_TITLE));
 
-    /* ── "Lade Spiele X / Y" ───────────────────────────────────── */
     char status[64];
     if (lctx->phase == LOAD_PHASE_INIT) {
         snprintf(status, sizeof(status), "Initialisiere...");
@@ -160,7 +150,6 @@ void loading_draw_top(const LoadingContext *lctx)
     }
     ui_draw_text_centered_top(95.0f, 0.55f, CLR_TEXT, status);
 
-    /* ── Determinate progress bar ──────────────────────────────── */
     float bar_x = 50.0f;
     float bar_w = TOP_SCREEN_WIDTH - 100.0f;
     float bar_y = 130.0f;
@@ -177,12 +166,10 @@ void loading_draw_top(const LoadingContext *lctx)
     if (fill_w > 0.0f)
         C2D_DrawRectSolid(bar_x, bar_y, 0.5f, fill_w, bar_h, CLR_ACCENT);
 
-    /* ── Percentage text ───────────────────────────────────────── */
     char pct[16];
     snprintf(pct, sizeof(pct), "%d%%", (int)(progress * 100.0f));
     ui_draw_text_centered_top(145.0f, 0.45f, CLR_SUBTEXT, pct);
 
-    /* ── Spinner (rotating square) ─────────────────────────────── */
     float cx = TOP_SCREEN_WIDTH / 2.0f;
     float cy = 190.0f;
     float sz = 8.0f;
@@ -197,23 +184,18 @@ void loading_draw_top(const LoadingContext *lctx)
         C2D_DrawRectSolid(cx + dx - sz/2, cy + dy - sz/2, 0.5f, sz, sz, clr);
     }
 
-    /* ── Currently scanning game name (if available) ───────────── */
     if (lctx->phase == LOAD_PHASE_SCANNING && lctx->found_games > 0) {
         const char *last_name = g_ctx.games[lctx->found_games - 1].name;
         ui_draw_text_centered_top(115.0f, 0.40f, CLR_SUBTEXT, last_name);
     }
 }
 
-/*═══════════════════════════════════════════════════════════════*
- *  Draw – Bottom Screen (cloud connection status)
- *═══════════════════════════════════════════════════════════════*/
+/* Draw – Bottom Screen (cloud connection status) */
 void loading_draw_bottom(const LoadingContext *lctx)
 {
-    /* ── Header ────────────────────────────────────────────────── */
     C2D_DrawRectSolid(0, 0, 0.5f, BOTTOM_SCREEN_WIDTH, 28.0f, CLR_SURFACE);
     ui_draw_text_centered(4.0f, 0.55f, CLR_TEXT, "Cloud Verbindung");
 
-    /* ── Connection status icon ────────────────────────────────── */
     float icon_y = 80.0f;
     float icon_x = BOTTOM_SCREEN_WIDTH / 2.0f;
 
@@ -248,10 +230,8 @@ void loading_draw_bottom(const LoadingContext *lctx)
     /* Status letter inside circle */
     ui_draw_text(icon_x - 8.0f, icon_y - 10.0f, 0.55f, CLR_BLACK, status_icon);
 
-    /* ── Status message ────────────────────────────────────────── */
     ui_draw_text_centered(120.0f, 0.50f, CLR_TEXT, lctx->cloud_msg);
 
-    /* ── Server info ───────────────────────────────────────────── */
     if (g_ctx.config.server.host[0] != '\0') {
         char info[128];
         snprintf(info, sizeof(info), "%s:%d",
@@ -259,7 +239,6 @@ void loading_draw_bottom(const LoadingContext *lctx)
         ui_draw_text_centered(145.0f, 0.40f, CLR_SUBTEXT, info);
     }
 
-    /* ── Connecting animation (pulsing dots) ───────────────────── */
     if (lctx->cloud_state == CLOUD_CONNECTING) {
         int dots = ((int)(lctx->spinner_angle / 30.0f)) % 4;
         char anim[16];
@@ -267,16 +246,13 @@ void loading_draw_bottom(const LoadingContext *lctx)
         ui_draw_text_centered(170.0f, 0.45f, CLR_ACCENT, anim);
     }
 
-    /* ── Version at bottom ─────────────────────────────────────── */
     char ver[32];
     snprintf(ver, sizeof(ver), "v%s", APP_VERSION_STRING);
     ui_draw_text_centered(BOTTOM_SCREEN_HEIGHT - 20.0f, 0.35f,
                           CLR_OVERLAY, ver);
 }
 
-/*═══════════════════════════════════════════════════════════════*
- *  Cleanup
- *═══════════════════════════════════════════════════════════════*/
+/* Cleanup */
 void loading_cleanup(LoadingContext *lctx)
 {
     if (lctx->title_ids) {
