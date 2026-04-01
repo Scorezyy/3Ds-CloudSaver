@@ -378,6 +378,97 @@ int save_scan_titles(GameTitle *games, int max_games)
 }
 
 /*═══════════════════════════════════════════════════════════════*
+ *  Get title ID list (for incremental loading screen)
+ *═══════════════════════════════════════════════════════════════*/
+u32 save_get_title_ids(u64 **out_ids)
+{
+    u32 title_count = 0;
+    Result res = AM_GetTitleCount(MEDIATYPE_SD, &title_count);
+    if (R_FAILED(res) || title_count == 0) {
+        *out_ids = NULL;
+        return 0;
+    }
+
+    u64 *ids = (u64 *)malloc(title_count * sizeof(u64));
+    if (!ids) { *out_ids = NULL; return 0; }
+
+    u32 read_count = 0;
+    res = AM_GetTitleList(&read_count, MEDIATYPE_SD, title_count, ids);
+    if (R_FAILED(res)) {
+        free(ids);
+        *out_ids = NULL;
+        return 0;
+    }
+
+    *out_ids = ids;
+    return read_count;
+}
+
+/*═══════════════════════════════════════════════════════════════*
+ *  Scan a single title (for incremental loading)
+ *═══════════════════════════════════════════════════════════════*/
+bool save_scan_one_title(u64 title_id, GameTitle *out)
+{
+    static SMDH smdh;
+
+    u32 high = (u32)(title_id >> 32);
+    if (high != 0x00040000 && high != 0x00040002)
+        return false;
+
+    memset(out, 0, sizeof(GameTitle));
+    out->title_id     = title_id;
+    out->has_icon     = false;
+    out->has_save_data = true;
+    out->region       = REGION_UNKNOWN;
+
+    snprintf(out->name, sizeof(out->name), "%08lX",
+             (unsigned long)(title_id & 0xFFFFFFFF));
+
+    char product_code[16] = {0};
+    if (R_SUCCEEDED(AM_GetTitleProductCode(MEDIATYPE_SD, title_id, product_code))) {
+        strncpy(out->product_code, product_code, sizeof(out->product_code) - 1);
+    }
+
+    memset(&smdh, 0, sizeof(smdh));
+    if (!read_smdh(title_id, &smdh))
+        return false;
+
+    /* Filter: only official titles (CTR- or KTR-) */
+    bool is_official = false;
+    if (out->product_code[0] == 'C' && out->product_code[1] == 'T' &&
+        out->product_code[2] == 'R' && out->product_code[3] == '-')
+        is_official = true;
+    if (out->product_code[0] == 'K' && out->product_code[1] == 'T' &&
+        out->product_code[2] == 'R' && out->product_code[3] == '-')
+        is_official = true;
+    if (!is_official)
+        return false;
+
+    /* Game name from SMDH */
+    char name_buf[128] = {0};
+    int lang_order[] = { 1, 0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
+    for (int l = 0; l < 12; l++) {
+        int idx = lang_order[l];
+        if (idx >= 16) break;
+        smdh_utf16_to_utf8(smdh.titles[idx].short_desc, name_buf, sizeof(name_buf));
+        if (name_buf[0] != '\0') break;
+    }
+    if (name_buf[0] != '\0')
+        strncpy(out->name, name_buf, sizeof(out->name) - 1);
+
+    /* Region */
+    out->region = region_from_smdh(smdh.region_lockout);
+    if (out->region == REGION_UNKNOWN)
+        out->region = region_from_product_code(out->product_code);
+
+    /* Icon */
+    if (smdh_icon_to_c2d(smdh.large_icon, &out->icon))
+        out->has_icon = true;
+
+    return true;
+}
+
+/*═══════════════════════════════════════════════════════════════*
  *  Helper: try to open a title's save archive
  *  Tries multiple archive types that may work on CFW.
  *═══════════════════════════════════════════════════════════════*/

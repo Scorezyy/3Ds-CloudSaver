@@ -89,6 +89,7 @@ typedef enum {
 typedef enum {
     STATE_SETUP_DEVICE_NAME = 0,    /* First launch: enter device name */
     STATE_CONNECTING,               /* Connecting to server */
+    STATE_LOADING,                  /* Loading screen: scanning titles + cloud connect */
     STATE_MAIN_BROWSE,              /* Main: browsing games on top screen */
     STATE_GAME_SELECTED,            /* A game is selected, showing saves */
     STATE_SAVE_DETAIL,              /* Viewing save file details */

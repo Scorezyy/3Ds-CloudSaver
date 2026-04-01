@@ -15,6 +15,12 @@ bool ui_init(void);
 /** Free all UI resources. */
 void ui_exit(void);
 
+/** Get the top-screen render target (for external modules). */
+C3D_RenderTarget *ui_get_top_target(void);
+
+/** Get the bottom-screen render target (for external modules). */
+C3D_RenderTarget *ui_get_bottom_target(void);
+
 /*─────────────── Main Render Loop ──────────────*/
 /** Start a new frame. */
 void ui_frame_begin(void);
@@ -61,8 +67,11 @@ bool ui_is_transitioning(void);
 /** Draw a rounded rectangle. */
 void ui_draw_rounded_rect(float x, float y, float w, float h, float r, u32 clr);
 
-/** Draw text centred horizontally. */
+/** Draw text centred horizontally (bottom screen width). */
 void ui_draw_text_centered(float y, float size, u32 clr, const char *text);
+
+/** Draw text centred horizontally on top screen (400px). */
+void ui_draw_text_centered_top(float y, float size, u32 clr, const char *text);
 
 /** Draw text at position. */
 void ui_draw_text(float x, float y, float size, u32 clr, const char *text);

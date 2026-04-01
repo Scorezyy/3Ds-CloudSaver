@@ -11,6 +11,15 @@
 /** Scan all installed titles and populate the games array. */
 int save_scan_titles(GameTitle *games, int max_games);
 
+/** Get the list of SD title IDs for incremental scanning.
+ *  Allocates *out_ids (caller must free).  Returns count, or 0 on error. */
+u32 save_get_title_ids(u64 **out_ids);
+
+/** Scan a single title by ID and fill a GameTitle struct.
+ *  Returns true if the title is a valid game (official, has SMDH).
+ *  Returns false if it should be skipped (homebrew, system app, etc.). */
+bool save_scan_one_title(u64 title_id, GameTitle *out);
+
 /** Check if a title has accessible save data. */
 bool save_has_data(u64 title_id);
 

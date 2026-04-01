@@ -12,11 +12,13 @@
 #include "save.h"
 #include "network.h"
 #include "sync.h"
+#include "loading.h"
 
 /*═══════════════════════════════════════════════════════════════*
  *  Global application context
  *═══════════════════════════════════════════════════════════════*/
 AppContext g_ctx;
+static LoadingContext s_loading;
 
 /*───────────────── Forward declarations ────────────────────────*/
 static void app_init(void);
@@ -83,7 +85,8 @@ static void app_init(void)
     if (g_ctx.config.first_run || g_ctx.config.device_name[0] == '\0') {
         g_ctx.state = STATE_SETUP_DEVICE_NAME;
     } else {
-        g_ctx.state = STATE_CONNECTING;
+        g_ctx.state = STATE_LOADING;
+        loading_init(&s_loading);
     }
 }
 
@@ -489,19 +492,20 @@ static void update_state(void)
         }
     }
 
-    /* Handle connecting state */
+    /* Handle connecting state (legacy — now goes through STATE_LOADING) */
     if (g_ctx.state == STATE_CONNECTING) {
-        /* Try connecting (won't crash if no server configured) */
-        attempt_auto_connect();
+        /* Redirect to loading screen */
+        g_ctx.state = STATE_LOADING;
+        loading_init(&s_loading);
+    }
 
-        /* Scan titles – this is safe even without a connection */
-        g_ctx.game_count = save_scan_titles(g_ctx.games, MAX_GAMES);
-        if (g_ctx.game_count > 0)
-            g_ctx.selected_game = 0;
-        else
-            g_ctx.selected_game = -1;
-
-        g_ctx.state = STATE_MAIN_BROWSE;
+    /* Handle loading state */
+    if (g_ctx.state == STATE_LOADING) {
+        if (loading_update(&s_loading)) {
+            /* Loading complete! Transition to main browse. */
+            loading_cleanup(&s_loading);
+            g_ctx.state = STATE_MAIN_BROWSE;
+        }
     }
 }
 
@@ -519,6 +523,18 @@ static void render(void)
 
     case STATE_CONNECTING:
         ui_draw_connecting();
+        break;
+
+    case STATE_LOADING:
+        /* Top: progress bar + game count */
+        C2D_TargetClear(ui_get_top_target(), CLR_BACKGROUND);
+        C2D_SceneBegin(ui_get_top_target());
+        loading_draw_top(&s_loading);
+
+        /* Bottom: cloud connection status */
+        C2D_TargetClear(ui_get_bottom_target(), CLR_BACKGROUND);
+        C2D_SceneBegin(ui_get_bottom_target());
+        loading_draw_bottom(&s_loading);
         break;
 
     case STATE_MAIN_BROWSE:

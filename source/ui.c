@@ -54,6 +54,9 @@ void ui_exit(void)
     if (text_buf) { C2D_TextBufDelete(text_buf); text_buf = NULL; }
 }
 
+C3D_RenderTarget *ui_get_top_target(void)    { return top_target; }
+C3D_RenderTarget *ui_get_bottom_target(void) { return bottom_target; }
+
 /*═══════════════════════════════════════════════════════════════*
  *  Frame management
  *═══════════════════════════════════════════════════════════════*/
@@ -171,7 +174,7 @@ void ui_draw_text_centered(float y, float size, u32 clr, const char *text)
     C2D_DrawText(&txt, C2D_WithColor, x, y, 0.5f, size, size, clr);
 }
 
-static void draw_text_centered_top(float y, float size, u32 clr, const char *text)
+void ui_draw_text_centered_top(float y, float size, u32 clr, const char *text)
 {
     if (!text || !text_buf) return;
     C2D_Text txt;
@@ -277,12 +280,12 @@ void ui_draw_setup(void)
     C2D_TargetClear(top_target, CLR_BACKGROUND);
     C2D_SceneBegin(top_target);
 
-    draw_text_centered_top(60.0f, FONT_SIZE_TITLE, CLR_ACCENT,
-                           lang_str(STR_APP_TITLE));
-    draw_text_centered_top(110.0f, FONT_SIZE_MED, CLR_TEXT,
-                           lang_str(STR_WELCOME));
-    draw_text_centered_top(150.0f, FONT_SIZE_SMALL, CLR_SUBTEXT,
-                           APP_VERSION_STRING);
+    ui_draw_text_centered_top(60.0f, FONT_SIZE_TITLE, CLR_ACCENT,
+                              lang_str(STR_APP_TITLE));
+    ui_draw_text_centered_top(110.0f, FONT_SIZE_MED, CLR_TEXT,
+                              lang_str(STR_WELCOME));
+    ui_draw_text_centered_top(150.0f, FONT_SIZE_SMALL, CLR_SUBTEXT,
+                              APP_VERSION_STRING);
 
     /* Bottom screen: prompt */
     C2D_TargetClear(bottom_target, CLR_BACKGROUND);
@@ -312,8 +315,8 @@ void ui_draw_connecting(void)
 {
     C2D_TargetClear(top_target, CLR_BACKGROUND);
     C2D_SceneBegin(top_target);
-    draw_text_centered_top(100.0f, FONT_SIZE_LARGE, CLR_ACCENT,
-                           lang_str(STR_APP_TITLE));
+    ui_draw_text_centered_top(100.0f, FONT_SIZE_LARGE, CLR_ACCENT,
+                              lang_str(STR_APP_TITLE));
 
     C2D_TargetClear(bottom_target, CLR_BACKGROUND);
     C2D_SceneBegin(bottom_target);
@@ -350,8 +353,8 @@ void ui_draw_top_games(void)
 
     /* Header */
     C2D_DrawRectSolid(0, 0, 0.5f, TOP_SCREEN_WIDTH, 28.0f, CLR_SURFACE);
-    draw_text_centered_top(4.0f, FONT_SIZE_MED, CLR_TEXT,
-                           lang_str(STR_INSTALLED_GAMES));
+    ui_draw_text_centered_top(4.0f, FONT_SIZE_MED, CLR_TEXT,
+                              lang_str(STR_INSTALLED_GAMES));
 
     /* Connection indicator */
     u32 status_clr = g_ctx.server_connected ? CLR_SUCCESS : CLR_ERROR;
@@ -363,8 +366,8 @@ void ui_draw_top_games(void)
     ui_draw_text(8.0f, 6.0f, FONT_SIZE_SMALL, CLR_SUBTEXT, count_str);
 
     if (g_ctx.game_count == 0) {
-        draw_text_centered_top(120.0f, FONT_SIZE_MED, CLR_SUBTEXT,
-                               lang_str(STR_NO_GAMES_FOUND));
+        ui_draw_text_centered_top(120.0f, FONT_SIZE_MED, CLR_SUBTEXT,
+                                  lang_str(STR_NO_GAMES_FOUND));
         return;
     }
 
