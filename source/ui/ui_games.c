@@ -65,8 +65,11 @@ void ui_draw_top_games(void)
 
         /* Draw icon if available */
         if (g_ctx.games[i].has_icon) {
-            C2D_DrawImageAt(g_ctx.games[i].icon, x, y, 0.5f, NULL,
-                            COVER_WIDTH / 48.0f, COVER_HEIGHT / 48.0f);
+            float iw = g_ctx.games[i].icon.subtex->width;
+            float ih = g_ctx.games[i].icon.subtex->height;
+            float sx = (float)COVER_WIDTH  / iw;
+            float sy = (float)COVER_HEIGHT / ih;
+            C2D_DrawImageAt(g_ctx.games[i].icon, x, y, 0.5f, NULL, sx, sy);
         } else {
             /* Placeholder: first 2 chars of game name */
             char abbr[3] = { g_ctx.games[i].name[0],
@@ -74,6 +77,14 @@ void ui_draw_top_games(void)
             float ax = x + (COVER_WIDTH - 16) / 2.0f;
             float ay = y + (COVER_HEIGHT - 12) / 2.0f;
             ui_draw_text(ax, ay, FONT_SIZE_SMALL, CLR_ACCENT, abbr);
+        }
+
+        /* Cartridge badge (small indicator in top-right corner) */
+        if (g_ctx.games[i].is_cartridge) {
+            float bx = x + COVER_WIDTH - 10;
+            float by = y + 1;
+            C2D_DrawCircleSolid(bx + 4, by + 4, 0.6f, 5.0f, CLR_WARNING);
+            ui_draw_text(bx, by, 0.3f, CLR_BLACK, "C");
         }
     }
 

@@ -33,6 +33,9 @@ typedef struct {
     char status_message[256];
     float status_timer;
 
+    /* Cartridge tracking */
+    u64 cart_title_id;         /* Title ID of currently inserted cart (0 = none) */
+
     /* Frame counter */
     u32 frame_count;
 } AppContext;

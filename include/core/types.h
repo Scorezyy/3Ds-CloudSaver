@@ -20,6 +20,14 @@ typedef enum {
     REGION_COUNT
 } GameRegion;
 
+/* ── Media Type (SD install vs physical cartridge) ── */
+
+typedef enum {
+    MEDIA_SD = 0,
+    MEDIA_GAMECARD_3DS,
+    MEDIA_GAMECARD_NDS
+} MediaType;
+
 /* ── Connection ── */
 
 typedef enum {
@@ -92,9 +100,11 @@ typedef struct {
     char name[128];
     char product_code[16];
     GameRegion region;
+    MediaType media_type;
     C2D_Image icon;
     bool has_icon;
     bool has_save_data;
+    bool is_cartridge;
 } GameTitle;
 
 typedef struct {

@@ -291,7 +291,7 @@ SyncResult sync_all(const GameTitle *games, int game_count,
         if (progress_cb) progress_cb(i + 1, game_count, games[i].name);
         if (!games[i].has_save_data) continue;
 
-        SyncResult res = sync_upload_save(&games[i], device_name, commit_message, NULL);
+        SyncResult res = sync_upload_save(&games[i], device_name, commit_message, commit_message);
         if (res != SYNC_OK && res != SYNC_ERR_NO_SAVE_DATA)
             overall = res;
     }

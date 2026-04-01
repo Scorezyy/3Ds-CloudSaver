@@ -4,6 +4,7 @@
 #include "common.h"
 #include "smdh.h"
 #include "title.h"
+#include "cartridge.h"
 
 /* Save archive operations */
 bool save_has_data(u64 title_id);

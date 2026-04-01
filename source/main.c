@@ -26,6 +26,7 @@ static void app_main_loop(void);
 static void handle_input(void);
 static void handle_touch(touchPosition touch);
 static void update_state(void);
+static void update_cartridge(void);
 static void render(void);
 static void attempt_auto_connect(void);
 
@@ -236,7 +237,7 @@ static void handle_input(void)
             {
                 SyncResult res = sync_upload_save(
                     &g_ctx.games[g_ctx.selected_game],
-                    g_ctx.config.device_name, msg, NULL);
+                    g_ctx.config.device_name, msg, msg);
                 if (res == SYNC_OK) {
                     snprintf(g_ctx.status_message, sizeof(g_ctx.status_message),
                              "%s", lang_str(STR_SYNC_COMPLETE));
@@ -462,11 +463,70 @@ static void handle_touch(touchPosition touch)
     }
 }
 
+/* Cartridge hot-swap detection (called from update_state) */
+static void update_cartridge(void)
+{
+    /* Only poll every 60 frames (~1 second) to avoid overhead */
+    if (g_ctx.frame_count % 60 != 0) return;
+
+    /* Safe to poll in browse/settings, not during active sync/download */
+    if (g_ctx.state != STATE_MAIN_BROWSE &&
+        g_ctx.state != STATE_GAME_SELECTED &&
+        g_ctx.state != STATE_SAVE_DETAIL &&
+        g_ctx.state != STATE_SETTINGS)
+        return;
+
+    GameTitle new_cart;
+    if (!cart_poll(g_ctx.cart_title_id, &new_cart))
+        return; /* No change */
+
+    /* ── Remove old cartridge entry (always at index 0 if present) ── */
+    if (g_ctx.cart_title_id != 0 && g_ctx.game_count > 0
+        && g_ctx.games[0].is_cartridge)
+    {
+        /* Free old cart icon */
+        if (g_ctx.games[0].has_icon) {
+            if (g_ctx.games[0].icon.tex) {
+                C3D_TexDelete(g_ctx.games[0].icon.tex);
+                free((void *)g_ctx.games[0].icon.tex);
+            }
+            if (g_ctx.games[0].icon.subtex)
+                free((void *)g_ctx.games[0].icon.subtex);
+        }
+        /* Shift games left */
+        memmove(&g_ctx.games[0], &g_ctx.games[1],
+                (g_ctx.game_count - 1) * sizeof(GameTitle));
+        g_ctx.game_count--;
+        if (g_ctx.selected_game > 0)
+            g_ctx.selected_game--;
+        else
+            g_ctx.selected_game = (g_ctx.game_count > 0) ? 0 : -1;
+    }
+
+    /* ── Insert new cartridge at position 0 ── */
+    if (new_cart.title_id != 0 && g_ctx.game_count < MAX_GAMES) {
+        memmove(&g_ctx.games[1], &g_ctx.games[0],
+                g_ctx.game_count * sizeof(GameTitle));
+        g_ctx.games[0] = new_cart;
+        g_ctx.game_count++;
+        g_ctx.cart_title_id = new_cart.title_id;
+
+        /* Adjust selection index */
+        if (g_ctx.selected_game >= 0)
+            g_ctx.selected_game++;
+    } else {
+        g_ctx.cart_title_id = 0;
+    }
+}
+
 /* State update */
 static void update_state(void)
 {
     /* Update animations */
     ui_animation_update();
+
+    /* Cartridge hot-swap detection */
+    update_cartridge();
 
     /* Status toast timer */
     if (g_ctx.status_timer > 0.0f) {

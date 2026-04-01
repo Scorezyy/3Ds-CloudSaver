@@ -17,6 +17,8 @@ static bool populate_game(u64 tid, GameTitle *g)
     g->title_id      = tid;
     g->has_save_data = true;
     g->region        = REGION_UNKNOWN;
+    g->media_type    = MEDIA_SD;
+    g->is_cartridge  = false;
 
     snprintf(g->name, sizeof(g->name), "%08lX",
              (unsigned long)(tid & 0xFFFFFFFF));

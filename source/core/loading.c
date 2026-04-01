@@ -123,6 +123,27 @@ bool loading_update(LoadingContext *lctx)
     }
 
     case LOAD_PHASE_DONE:
+        /* Insert cartridge at position 0 if present */
+        {
+            GameTitle cart;
+            if (cart_read_info(&cart)) {
+                /* Shift all existing games right by one */
+                if (lctx->found_games < MAX_GAMES) {
+                    memmove(&g_ctx.games[1], &g_ctx.games[0],
+                            lctx->found_games * sizeof(GameTitle));
+                    g_ctx.games[0] = cart;
+                    lctx->found_games++;
+                    g_ctx.cart_title_id = cart.title_id;
+                } else {
+                    /* At max — replace last entry */
+                    memmove(&g_ctx.games[1], &g_ctx.games[0],
+                            (MAX_GAMES - 1) * sizeof(GameTitle));
+                    g_ctx.games[0] = cart;
+                    g_ctx.cart_title_id = cart.title_id;
+                }
+            }
+        }
+
         /* Finalise */
         g_ctx.game_count = lctx->found_games;
         g_ctx.selected_game = (g_ctx.game_count > 0) ? 0 : -1;
