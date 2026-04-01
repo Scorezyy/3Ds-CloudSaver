@@ -1,0 +1,11 @@
+version: "3.8"
+
+services:
+  cloudsaver-server:
+    build: .
+    container_name: cloudsaver-server
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./cloudsaves:/data
+    restart: unless-stopped
